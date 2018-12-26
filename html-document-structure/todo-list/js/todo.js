@@ -1,20 +1,17 @@
 'use strict';
 
-function TodoList(container) {
-  const doneList = container.querySelector('.done');
-  const undoneList = container.querySelector('.undone');
-  const tasks = container.querySelectorAll('label');
+const doneList = document.querySelector('.done'),
+    undoneList = document.querySelector('.undone');
 
-  for (const task of tasks) {
-    task.addEventListener('click', updateList);
-  }
-
-  function updateList(event) {
-    const task = event.target;
-    const targetList = task.firstElementChild.checked ? doneList : undoneList;
-    targetList.appendChild(task);
-  } 
+function updateList(event) {
+    const currentTask = event.target.parentElement;
+    if (event.target.checked) {
+        doneList.appendChild(currentTask);
+    } else {
+        undoneList.appendChild(currentTask);
+    }
 }
 
-const lists = document.querySelectorAll('.todo-list');
-Array.from(lists).forEach(item => TodoList(item));
+const tasks = document.querySelectorAll('input');
+
+Array.from(tasks).forEach(item => item.addEventListener('click', updateList));
