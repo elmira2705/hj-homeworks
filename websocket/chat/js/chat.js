@@ -1,83 +1,71 @@
 'use strict';
 
 const chat = document.querySelector('.chat');
-const chatBox = init(chat);
-const socket = new WebSocket('wss://neto-api.herokuapp.com/chat');
+const messageBox = chat.querySelector('.message-box');
+const messageInput = messageBox.querySelector('.message-input');
+const messageSubmit = messageBox.querySelector('.message-submit');
+const messageContent = chat.querySelector('.messages-content');
+const messageTemplates = chat.querySelectorAll('.messages-templates');
+const messageStatus = chat.querySelector('.message-status');
+const chatStatus = chat.querySelector('.chat-status');
+const connection = new WebSocket('wss://neto-api.herokuapp.com/chat');
 
-chatBox.content.setAttribute('style', 'overflow-y: auto;');
+connection.addEventListener('open', onConnect);
+connection.addEventListener('close', onDisconnect);
+connection.addEventListener('message', onMessage);
+connection.addEventListener('error', (error) => console.log(`error: ${error.data}`));
+window.addEventListener('beforeunload', () => connection.close(1000));
+messageBox.addEventListener('click', sendMessage);
 
-socket.addEventListener('open', () => {
-  triggerStatus('Пользователь появился в сети');
-  chatBox.status.textContent = chatBox.status.dataset.online;
-  chatBox.submit.disabled = false;
-});
+function onConnect() {
+  chatStatus.textContent = chatStatus.dataset.online;
+  messageSubmit.disabled = false;
+}
 
-socket.addEventListener('close', () => {
-  triggerStatus('Пользователь не в сети');
-  chatBox.status.textContent = chatBox.status.dataset.offline;
-  chatBox.submit.disabled = true;
-});
+function onDisconnect() {
+  chatStatus.textContent = chatStatus.dataset.offline;
+  messageSubmit.disabled = true;
+}
 
-socket.addEventListener('message', (event) => {
-  const data = event.data;
-  const messageInput = chatBox.templates.loading;
-  const messageTemplates = chatBox.templates.messageTemplates.cloneNode(true);
-
-  if (data === '...') {
-    chatBox.content.appendChild(messageInput).scrollIntoView({
-      block: "end",
-      behavior: "smooth"
-    });
-  } else {
-    addMessage(messageTemplates, data);
-    chatBox.content.appendChild(messageTemplates).scrollIntoView({
-      block: "end",
-      behavior: "smooth"
-    });
-  }
-});
-
-chatBox.form.addEventListener('submit', (event) => {
-  event.preventDefault();
-
-  const value = chatBox.input.value;
-  const messagePersonal = chatBox.templates.messagePersonal.cloneNode(true);
-
-  addMessage(messagePersonal, value);
-  chatBox.content.appendChild(messagePersonal).scrollIntoView({
-    block: "end",
-    behavior: "smooth"
-  });
-  socket.send(value);
-  chatBox.form.reset();
-});
-
-function init(chatElem) {
-  return {
-    form: chatElem.querySelector('.message-box'),
-    input: chatElem.querySelector('.message-input'),
-    submit: chatElem.querySelector('.message-submit'),
-    content: chatElem.querySelector('.messages-content'),
-    status: chatElem.querySelector('.chat-status'),
-    templates: {
-      messageTemplates: chatElem.querySelector('[class="message"]'),
-      messagePersonal: chatElem.querySelector('.message.message-personal'),
-      loading: chatElem.querySelector('.message.loading').cloneNode(true),
-      status: chatElem.querySelector('.message.message-status')
+function onMessage(event) {
+  try {
+    const msg = event.data;
+    if (msg === '...') {
+      addMessage('.loading', 'печатает сообщение...');
+    } else {
+      addMessage('', msg);
     }
-  };
+  } catch (err) {
+    console.log(err.message);
+  }
 }
 
-function triggerStatus(messageStatus) {
-  const message = chatBox.templates.status.cloneNode(true);
-  message.querySelector('.message-text').textContent = messageStatus;
-  chatBox.content.appendChild(message);
+function sendMessage(event) {
+  event.preventDefault();
+  if (event.target === messageSubmit) {
+    addMessage('.message-personal', messageInput.value);
+    connection.send(messageInput.value);
+  }
 }
 
-function addMessage(who, data) {
-  const time = new Date();
-  const hour = time.getHours() < 10 ? `0${time.getHours()}` : time.getHours();
-  const minutes = time.getMinutes() < 10 ? `0${time.getMinutes()}` : time.getMinutes();
-  who.querySelector('.message-text').textContent = data;
-  who.querySelector('.timestamp').textContent = `${hour}:${minutes}`;
+function getTemplate(className) {
+  if (className === '') {
+    return chat.querySelectorAll('.message')[1];
+  }
+  return chat.querySelector(className);
+}
+
+function addMessage(className, text) {
+    const msg = getTemplate(className).cloneNode(true);
+    msg.querySelector('span').textContent = text;
+    const timestamp = msg.querySelector('.timestamp');
+    if (timestamp) {
+      timestamp.textContent = getTime();
+    }
+    messageContent.appendChild(msg);  
+}
+
+function getTime() {
+  const now = new Date();
+  return now.getHours() + ':' + now.getMinutes();
 }
