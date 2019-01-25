@@ -53,11 +53,11 @@ class TextEditor {
   }
 	
   showHint(event) {
-    this.hintContainer.classList.add('text-editor__hint_visible');
+      this.hintContainer.classList.add('text-editor__hint_visible');
   }
 	
   hideHint(event) {
-		this.hintContainer.classList.remove('text-editor__hint_visible');
+	this.hintContainer.classList.remove('text-editor__hint_visible');
   }
 	
   load(value) {
